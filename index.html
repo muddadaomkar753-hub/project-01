@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlphabetAI Attendance System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="navbar">
+    <div class="brand">
+      <span class="logo">A</span>
+      <div>
+        <h2>AlphabetAI <small>ATTENDANCE & CLASSROOM MANAGEMENT</small></h2>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" data-tab="scannerPane">📷 Live Scanner</button>
+      <button class="tab-btn" data-tab="rosterPane">📋 AlphabetAI Roster</button>
+      <button class="tab-btn" data-tab="enrollPane">👤 Enroll Student</button>
+    </div>
+
+    <!-- Teacher Session Controls -->
+    <div class="nav-actions">
+      <span id="sessionStatusBadge" class="session-badge">● Active Session</span>
+      <button id="lockSessionBtn" class="action-btn lock-btn" title="Lock attendance session to prevent further changes">
+        🔒 Lock Session
+      </button>
+      <button id="exportCsvBtn" class="action-btn export-btn" title="Export formal A-Z attendance sheet to CSV">
+        📥 Export CSV
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="main-content">
+
+    <!-- KPI Summary Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-title">Total Enrolled</span>
+        <span id="kpiTotal" class="kpi-value blue">0</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-title">Present</span>
+        <span id="kpiPresent" class="kpi-value green">0</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-title">Late</span>
+        <span id="kpiLate" class="kpi-value yellow">0</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-title">Absent</span>
+        <span id="kpiAbsent" class="kpi-value red">0</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-title">Attendance Rate</span>
+        <span id="kpiRate" class="kpi-value green">0.0%</span>
+      </div>
+    </section>
+
+    <!-- TAB 1: Live Face Scanner -->
+    <section id="scannerPane" class="tab-pane active">
+      <div class="scanner-grid">
+        
+        <!-- Left: Camera Feed & Real-time Canvas Overlay -->
+        <div class="camera-col">
+          <div class="video-wrapper">
+            <video id="camera" autoplay playsinline muted></video>
+            <canvas id="overlayCanvas"></canvas>
+
+            <div id="placeholder" class="video-placeholder">
+              <div class="camera-icon">📷</div>
+              <h3 id="cameraTitle">AI Camera Offline</h3>
+              <p id="cameraMessage">
+                Start the camera feed to begin automated face-recognition attendance.
+              </p>
+              <button id="startBtn" class="primary-btn">Start Camera Feed</button>
+            </div>
+          </div>
+
+          <!-- Controls Bar -->
+          <div class="scanner-controls">
+            <div class="btn-group">
+              <button id="stopBtn" class="secondary-btn" disabled>Stop Camera</button>
+              <button id="flipBtn" class="secondary-btn">Flip (Front / Rear)</button>
+              <button id="scanOnceBtn" class="primary-btn" disabled>📸 Scan Face</button>
+            </div>
+
+            <!-- Auto-Scan Toggle Switch -->
+            <div class="toggle-wrapper">
+              <span>Continuous AI Scan:</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="autoScanToggle" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Live Match Alert Banner -->
+          <div id="matchBanner" class="match-banner">
+            <div id="matchAvatar" class="match-avatar">✓</div>
+            <div class="match-info">
+              <h4 id="matchName">Rahul Sharma (CS-101)</h4>
+              <p id="matchDetail">Marked Present • Confidence: 98.4% • Just now</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Live Attendance Stream -->
+        <aside class="live-stream-panel">
+          <div class="panel-header">
+            <h3>Live Attendance Stream</h3>
+            <span id="streamCountBadge" class="session-badge">0 Checked In</span>
+          </div>
+
+          <div id="liveFeedList" class="live-feed-list">
+            <p style="color: #94a3b8; font-size: 13px; text-align: center; margin-top: 30px;">
+              Waiting for face scans...
+            </p>
+          </div>
+        </aside>
+
+      </div>
+    </section>
+
+    <!-- TAB 2: AlphabetAI Smart Roster -->
+    <section id="rosterPane" class="tab-pane">
+      <div class="roster-card">
+        
+        <!-- Search & Dynamic Sort Bar -->
+        <div class="roster-header-bar">
+          <div class="roster-search-box">
+            <input type="text" id="rosterSearchInput" class="input-field" placeholder="🔍 Search student name or roll number...">
+            <select id="sortSelect" class="select-field">
+              <option value="roll_asc" selected>Sort: Roll Number (CS-01, CS-02, CS-10)</option>
+              <option value="roll_desc">Sort: Roll Number (Descending)</option>
+              <option value="name_asc">Sort: Student Name (A – Z)</option>
+              <option value="name_desc">Sort: Student Name (Z – A)</option>
+              <option value="status">Sort: Status (Present first)</option>
+            </select>
+          </div>
+          <button id="refreshRosterBtn" class="secondary-btn">↻ Refresh</button>
+        </div>
+
+        <!-- AlphabetAI Quick-Jump Index Bar (A-Z) -->
+        <div class="alphabet-nav" id="alphabetNav">
+          <button class="letter-btn all-btn active" data-letter="ALL">ALL</button>
+          <!-- A through Z buttons generated dynamically -->
+        </div>
+
+        <!-- Attendance Roster Table -->
+        <div class="roster-table-wrapper">
+          <table class="roster-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Roll Number</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Verification</th>
+                <th>Quick Override</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rosterTableBody">
+              <tr>
+                <td colspan="7" style="text-align: center; color: #94a3b8; padding: 30px;">
+                  Loading student roster...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 3: Student Enrollment -->
+    <section id="enrollPane" class="tab-pane">
+      <div class="enroll-container">
+        
+        <!-- Left: Face Photo Capture / Preview -->
+        <div class="enroll-camera-box">
+          <label style="font-weight: 600; font-size: 13px;">Face Photo Capture</label>
+          <div class="enroll-preview-frame">
+            <video id="enrollCamera" autoplay playsinline muted style="display: none;"></video>
+            <img id="enrollImgPreview" src="" alt="Face Preview" style="display: none;">
+            <div id="enrollCameraPlaceholder" style="text-align: center; color: #94a3b8; padding: 20px;">
+              <span style="font-size: 40px;">👤</span>
+              <p style="margin: 8px 0; font-size: 13px;">Capture face via camera or upload photo file</p>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button id="startEnrollCamBtn" class="secondary-btn">Start Enroll Camera</button>
+            <button id="snapEnrollBtn" class="primary-btn" disabled>📸 Take Snapshot</button>
+            <input type="file" id="enrollFileInput" accept="image/*" style="display: none;">
+            <button id="uploadEnrollBtn" class="secondary-btn">📁 Upload Photo</button>
+          </div>
+
+          <div id="qualityIndicator" class="quality-indicator">
+            <span>Face Status: <strong>Awaiting capture</strong></span>
+            <span id="qualityScoreText">-</span>
+          </div>
+        </div>
+
+        <!-- Right: Student Metadata Form -->
+        <form id="enrollForm" class="enroll-form">
+          <h3 style="margin: 0 0 10px 0; font-size: 18px;">Student Enrollment Details</h3>
+
+          <div class="form-group">
+            <label for="enrollName">Full Name *</label>
+            <input type="text" id="enrollName" class="input-field" placeholder="e.g. John Doe" required>
+          </div>
+
+          <div class="form-group">
+            <label for="enrollRoll">Roll Number / Student ID *</label>
+            <input type="text" id="enrollRoll" class="input-field" placeholder="e.g. CS-101" required>
+          </div>
+
+          <div class="form-group">
+            <label for="enrollClass">Class / Section</label>
+            <input type="text" id="enrollClass" class="input-field" placeholder="e.g. CSE-4A" value="CSE-4A">
+          </div>
+
+          <div class="form-group">
+            <label for="enrollDept">Department</label>
+            <input type="text" id="enrollDept" class="input-field" placeholder="e.g. Computer Science & Engineering" value="Computer Science">
+          </div>
+
+          <button type="submit" id="submitEnrollBtn" class="primary-btn" style="padding: 14px; justify-content: center; margin-top: 10px;">
+            ✓ Register Student & Extract Face Embedding
+          </button>
+
+          <p id="enrollFeedback" style="margin: 8px 0; font-size: 13px; font-weight: 600;"></p>
+        </form>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Hidden Canvas for Frame Capture -->
+  <canvas id="captureCanvas" style="display: none;"></canvas>
+
+  <script src="script.js"></script>
+</body>
+</html>
